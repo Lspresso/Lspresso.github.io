@@ -24,8 +24,9 @@
 <meta property="og:description" content="进程和异常进程进程控制块进程既是基本的分配单元，也是基本的执行单元。每个进程都是一个实体，有其自己的地址空间，通常包括代码段、数据段和堆栈。程序是一个没有生命的实体，只有被处理器赋予生命时，它才能成为一个活动的实体，而执行中的程序，就是我们所说的进程。 进程控制块（PCB）是系统专门设置用来管理进程的数据结构。PCB是系统感知进程存在的唯一标志，进程与PCB是一一对应的。 PCB结构如下 1234">
 <meta property="og:locale" content="zh_CN">
 <meta property="og:image" content="https://os.buaa.edu.cn/assets/courseware/v1/42ebdab497bddb3b310d0dd88eb69a43/asset-v1:BUAA+B3I062270+2022_SPRING+type@asset+block/lab3-asid.svg">
+<meta property="og:image" content="https://os.buaa.edu.cn/assets/courseware/v1/5ea075b45aaaa9f615d28fb2bd0cb342/asset-v1:BUAA+B3I062270+2022_SPRING+type@asset+block/3-R3000_SR.png">
 <meta property="article:published_time" content="2022-04-18T13:17:57.000Z">
-<meta property="article:modified_time" content="2022-04-18T14:14:45.784Z">
+<meta property="article:modified_time" content="2022-04-27T12:44:57.595Z">
 <meta property="article:author" content="John Doe">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://os.buaa.edu.cn/assets/courseware/v1/42ebdab497bddb3b310d0dd88eb69a43/asset-v1:BUAA+B3I062270+2022_SPRING+type@asset+block/lab3-asid.svg">
@@ -212,7 +213,7 @@
         <i class="iconfont icon-chart"></i>
         
           <!-- compatible with older versions-->
-          2k 字
+          4.7k 字
         
       </span>
     
@@ -224,7 +225,7 @@
         
         
           <!-- compatible with older versions-->
-          17 分钟
+          40 分钟
         
       </span>
     
@@ -286,14 +287,11 @@
 <li>env_status : 该变量只能有以下三种取值：</li>
 </ul>
 <ol>
-<li><ol>
-<li><ol>
-<li>ENV_FREE : 表明该进程是不活动的，即该进程控制块处于进程空闲链表中。</li>
-<li>ENV_NOT_RUNNABLE : 表明该进程处于阻塞状态，处于该状态的进程需要在一定条件下变成就绪状态从而被CPU调度。（比如因进程通信阻塞时变为 ENV_NOT_RUNNABLE，收到信息后变回 ENV_RUNNABLE）</li>
-<li>ENV_RUNNABLE : 表明该进程处于<strong>执行状态或就绪状态</strong>，即其可能是正在运行的，也可能正在等待被调度。</li>
-</ol>
+<li><p>ENV_FREE : 表明该进程是不活动的，即该进程控制块处于进程空闲链表中。</p>
 </li>
-</ol>
+<li><p>ENV_NOT_RUNNABLE : 表明该进程处于阻塞状态，处于该状态的进程需要在一定条件下变成就绪状态从而被CPU调度。（比如因进程通信阻塞时变为 ENV_NOT_RUNNABLE，收到信息后变回 ENV_RUNNABLE）</p>
+</li>
+<li><p>ENV_RUNNABLE : 表明该进程处于<strong>执行状态或就绪状态</strong>，即其可能是正在运行的，也可能正在等待被调度。</p>
 </li>
 </ol>
 <ul>
@@ -311,7 +309,45 @@
 <p><img src="https://os.buaa.edu.cn/assets/courseware/v1/42ebdab497bddb3b310d0dd88eb69a43/asset-v1:BUAA+B3I062270+2022_SPRING+type@asset+block/lab3-asid.svg" srcset="/img/loading.gif" lazyload alt="TLB对ASID的规定"></p>
 <p>可以看到，ASID仅占有6位，如果单纯依靠自增操作很快就会发生溢出。</p>
 <p>在asid_alloc函数中时如何避免这一问题的呢？具体实现是通过位图法管理可用的 64 个 ASID，如果当 ASID 耗尽时仍要创建进程，系统会 panic。</p>
-<h4 id="设置进程控制块"><a href="#设置进程控制块" class="headerlink" title="设置进程控制块"></a>设置进程控制块</h4>
+<h4 id="设置进程控制块"><a href="#设置进程控制块" class="headerlink" title="设置进程控制块"></a>设置进程控制块</h4><p>进程创建流程：</p>
+<ul>
+<li>从env_free_list链表中索取一个空闲PCB块</li>
+<li>手动设置进程信息</li>
+<li>为新进程分配资源，为新进程的程序和数据以及用户栈分配必要的内存空间。</li>
+<li>从空闲链表中取出该PCB块</li>
+</ul>
+<p>在编写初始化新进程的地址空间的函数env_setup_vm时，涉及到了一些宏定义如UTOP,VPT,UVPT等其代表含义如下</p>
+<figure class="highlight gherkin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><code class="hljs gherkin">/<span class="hljs-symbol">*</span><br> o     4G -----------&gt;  +----------------------------+------------0x100000000<br> o                      |<span class="hljs-string">       ...                  </span>|<span class="hljs-string">  kseg3</span><br><span class="hljs-string"> o                      +----------------------------+------------0xe000 0000</span><br><span class="hljs-string"> o                      </span>|<span class="hljs-string">       ...                  </span>|<span class="hljs-string">  kseg2</span><br><span class="hljs-string"> o                      +----------------------------+------------0xc000 0000</span><br><span class="hljs-string"> o                      </span>|<span class="hljs-string">   Interrupts &amp; Exception   </span>|<span class="hljs-string">  kseg1</span><br><span class="hljs-string"> o                      +----------------------------+------------0xa000 0000</span><br><span class="hljs-string"> o                      </span>|<span class="hljs-string">      Invalid memory        </span>|<span class="hljs-string">   /</span>|<span class="hljs-string">\</span><br><span class="hljs-string"> o                      +----------------------------+----</span>|<span class="hljs-string">-------Physics Memory Max</span><br><span class="hljs-string"> o                      </span>|<span class="hljs-string">       ...                  </span>|<span class="hljs-string">  kseg0</span><br><span class="hljs-string"> o  VPT,KSTACKTOP-----&gt; +----------------------------+----</span>|<span class="hljs-string">-------0x8040 0000-------end</span><br><span class="hljs-string"> o                      </span>|<span class="hljs-string">       Kernel Stack         </span>|<span class="hljs-string">    </span>|<span class="hljs-string"> KSTKSIZE            /</span>|<span class="hljs-string">\</span><br><span class="hljs-string"> o                      +----------------------------+----</span>|<span class="hljs-string">------                </span>|<br> o                      |<span class="hljs-string">       Kernel Text          </span>|<span class="hljs-string">    </span>|<span class="hljs-string">                    PDMAP</span><br><span class="hljs-string"> o      KERNBASE -----&gt; +----------------------------+----</span>|<span class="hljs-string">-------0x8001 0000    </span>|<br> o                      |<span class="hljs-string">   Interrupts &amp; Exception   </span>|<span class="hljs-string">   \</span>|<span class="hljs-string">/                    \</span>|<span class="hljs-string">/</span><br><span class="hljs-string"> o      ULIM     -----&gt; +----------------------------+------------0x8000 0000-------</span><br><span class="hljs-string"> o                      </span>|<span class="hljs-string">         User VPT           </span>|<span class="hljs-string">     PDMAP                /</span>|<span class="hljs-string">\</span><br><span class="hljs-string"> o      UVPT     -----&gt; +----------------------------+------------0x7fc0 0000    </span>|<br> o                      |<span class="hljs-string">         PAGES              </span>|<span class="hljs-string">     PDMAP                 </span>|<br> o      UPAGES   -----&gt; +----------------------------+------------0x7f80 0000    |<span class="hljs-string"></span><br><span class="hljs-string"> o                      </span>|<span class="hljs-string">         ENVS               </span>|<span class="hljs-string">     PDMAP                 </span>|<br> o  UTOP,UENVS   -----&gt; +----------------------------+------------0x7f40 0000    |<span class="hljs-string"></span><br><span class="hljs-string"> o  UXSTACKTOP -/       </span>|<span class="hljs-string">     user exception stack   </span>|<span class="hljs-string">     BY2PG                 </span>|<br> o                      +----------------------------+------------0x7f3f f000    |<span class="hljs-string"></span><br><span class="hljs-string"> o                      </span>|<span class="hljs-string">       Invalid memory       </span>|<span class="hljs-string">     BY2PG                 </span>|<br> o      USTACKTOP ----&gt; +----------------------------+------------0x7f3f e000    |<span class="hljs-string"></span><br><span class="hljs-string"> o                      </span>|<span class="hljs-string">     normal user stack      </span>|<span class="hljs-string">     BY2PG                 </span>|<br> o                      +----------------------------+------------0x7f3f d000    |<span class="hljs-string"></span><br><span class="hljs-string"> a                      </span>|<span class="hljs-string">                            </span>|<span class="hljs-string">                           </span>|<br> a                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                           |<span class="hljs-string"></span><br><span class="hljs-string"> a                      .                            .                           </span>|<br> a                      .                            .                         kuseg<br> a                      .                            .                           |<span class="hljs-string"></span><br><span class="hljs-string"> a                      </span>|<span class="hljs-string">~~~~~~~~~~~~~~~~~~~~~~~~~~~~</span>|<span class="hljs-string">                           </span>|<br> a                      |<span class="hljs-string">                            </span>|<span class="hljs-string">                           </span>|<br> o       UTEXT   -----&gt; +----------------------------+                           |<span class="hljs-string"></span><br><span class="hljs-string"> o                      </span>|<span class="hljs-string">                            </span>|<span class="hljs-string">     2 * PDMAP            \</span>|<span class="hljs-string">/</span><br><span class="hljs-string"> a     0 ------------&gt;  +----------------------------+ -----------------------------</span><br><span class="hljs-string"> o</span><br><span class="hljs-string">*/</span><br></code></pre></td></tr></table></figure>
+
+<p>PDX()函数用于取页目录项的下标。</p>
+<p>在设置完第二步之后，应当设置SR(Status Register)，即env-&gt;env_tf.cp0_status。</p>
+<p>SR 寄存器的低六位是一个二重栈的结构。KUo 和 IEo 是一组，每当中断发生的时候，硬件自动会将 KUp 和 IEp 的数值拷贝到这里；KUp 和 IEp 是一组，当中断发生的时候，硬件会把 KUc 和 IEc 的数值拷贝到这里。其中KU 表示是否位于内核模式下，为1 表示位于内核模式下；IE 表示中断是否开启，为1 表示开启，否则不开启。</p>
+<p><img src="https://os.buaa.edu.cn/assets/courseware/v1/5ea075b45aaaa9f615d28fb2bd0cb342/asset-v1:BUAA+B3I062270+2022_SPRING+type@asset+block/3-R3000_SR.png" srcset="/img/loading.gif" lazyload alt="R3000的SR寄存器示意图"></p>
+<h4 id="加载二进制镜像"><a href="#加载二进制镜像" class="headerlink" title="加载二进制镜像"></a>加载二进制镜像</h4><p>在上文创建进程的第三步提到，为新进程的程序分配空间存放代码，需要用到load_icode_mapper函数和load_elf函数。</p>
+<p>ELF文件一般以两种形式出现，一种是组成可重定位文件，一种是组成可执行文件或可被共享的对象文件。在这里 ELF 文件以后者的形式出现，用于在内存中构建进程映像。</p>
+<p>要想正确加载一个ELF 文件到内存，只需将ELF 文件中所有需要加载的segment 加载到对应的虚地址上即可。</p>
+<h4 id="创建进程"><a href="#创建进程" class="headerlink" title="创建进程"></a>创建进程</h4><p>创建进程过程比较简单，就是对上述部分函数进行封装，分配一个新的ENV结构体，设置进程控制块，之后将二进制代码载入对应地址空间即可。</p>
+<p>一种宏定义的使用方式：##代表拼接</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs c"><span class="hljs-meta">#<span class="hljs-keyword">define</span> CONS(a,b) int(a##e##b)</span><br><br><span class="hljs-type">int</span> <span class="hljs-title function_">main</span><span class="hljs-params">()</span><br>&#123;<br>    <span class="hljs-built_in">printf</span>(<span class="hljs-string">&quot;%d\n&quot;</span>, CONS(<span class="hljs-number">2</span>,<span class="hljs-number">3</span>)); <span class="hljs-comment">// 2e3 输出:2000</span><br>    <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<h4 id="进程运行与切换"><a href="#进程运行与切换" class="headerlink" title="进程运行与切换"></a>进程运行与切换</h4><p>env_run，是进程运行使用的基本函数，它包括两部分：</p>
+<ul>
+<li><p>保存当前进程上下文**(如果当前没有运行的进程就跳过这一步)**</p>
+</li>
+<li><p>恢复要启动的进程的上下文，然后运行该进程。</p>
+</li>
+</ul>
+<p>在这里提到的运行新进程并不只是代表运行进程，而是同时包括了进程的切换，使进程停止并运行另一个进程。这就要求我们保存当前进程的相关信息。</p>
+<p>那么这些信息都是什么呢？其一是进程本身信息，其二是进程周围的环境信息。</p>
+<p>事实上，进程本身信息如env_id，env_cr3等保留在原本的进程控制块中，根本不会改变，也就无须保存。我们仅需保存会发生变化的进程周围的环境信息即可。</p>
+<p>所以env_run函数的执行流程为：</p>
+<ol>
+<li>保存当前进程的上下文信息，设置当前进程上下文中的 pc 为epc。</li>
+<li>切换 curenv 为即将运行的进程。</li>
+<li>调用 lcontext 函数，设置全局变量mCONTEXT为当前进程页目录地址，这个值将在TLB重填时用到。</li>
+<li>调用 env_pop_tf 函数，恢复现场、异常返回。</li>
+</ol>
+
               
             </div>
             <hr/>
