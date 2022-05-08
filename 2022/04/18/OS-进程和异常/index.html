@@ -26,7 +26,7 @@
 <meta property="og:image" content="https://os.buaa.edu.cn/assets/courseware/v1/42ebdab497bddb3b310d0dd88eb69a43/asset-v1:BUAA+B3I062270+2022_SPRING+type@asset+block/lab3-asid.svg">
 <meta property="og:image" content="https://os.buaa.edu.cn/assets/courseware/v1/5ea075b45aaaa9f615d28fb2bd0cb342/asset-v1:BUAA+B3I062270+2022_SPRING+type@asset+block/3-R3000_SR.png">
 <meta property="article:published_time" content="2022-04-18T13:17:57.000Z">
-<meta property="article:modified_time" content="2022-04-27T12:44:57.595Z">
+<meta property="article:modified_time" content="2022-05-07T14:57:38.466Z">
 <meta property="article:author" content="John Doe">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://os.buaa.edu.cn/assets/courseware/v1/42ebdab497bddb3b310d0dd88eb69a43/asset-v1:BUAA+B3I062270+2022_SPRING+type@asset+block/lab3-asid.svg">
@@ -213,7 +213,7 @@
         <i class="iconfont icon-chart"></i>
         
           <!-- compatible with older versions-->
-          4.7k 字
+          6.1k 字
         
       </span>
     
@@ -225,7 +225,7 @@
         
         
           <!-- compatible with older versions-->
-          40 分钟
+          51 分钟
         
       </span>
     
@@ -347,6 +347,57 @@
 <li>调用 lcontext 函数，设置全局变量mCONTEXT为当前进程页目录地址，这个值将在TLB重填时用到。</li>
 <li>调用 env_pop_tf 函数，恢复现场、异常返回。</li>
 </ol>
+<h3 id="中断与异常"><a href="#中断与异常" class="headerlink" title="中断与异常"></a>中断与异常</h3><h4 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h4><p>CPU不仅有常用的32个寄存器，还有功能广泛的协处理器。其中，中断异常用到了控制寄存器CP0，这里的CP0指的是编号为12，13，14的三个CP0寄存器</p>
+<table>
+<thead>
+<tr>
+<th>寄存器助记符</th>
+<th>CP0寄存器编号</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>SR</td>
+<td>12</td>
+<td>状态寄存器，包括中断引脚使能，其他 CPU 模式等位域</td>
+</tr>
+<tr>
+<td>Cause</td>
+<td>13</td>
+<td>记录导致异常的原因</td>
+</tr>
+<tr>
+<td>EPC</td>
+<td>14</td>
+<td>异常结束后程序恢复执行的位置</td>
+</tr>
+</tbody></table>
+<p>在《See MIPS Run Linux》的第五章中中介绍到，MIPS CPU 处理一个异常时大致要完成四项工作：</p>
+<ol>
+<li>设置 EPC 指向异常结束时重新返回的地址。</li>
+<li>设置 SR 位，强制 CPU 进入内核态（行驶更高级的特权）并禁止中断。</li>
+<li>设置 Cause 寄存器，用于记录异常发生的原因。</li>
+<li>CPU 开始从异常入口位置取指，此后一切交给软件处理。</li>
+</ol>
+<h4 id="异常的分发"><a href="#异常的分发" class="headerlink" title="异常的分发"></a>异常的分发</h4><p>当发生异常时，处理器就会进入一个用于分发异常的程序，这个程序的作用就是检测发生了哪种异常，并调用相应的异常处理程序。</p>
+<p>异常分发代码处理过程如下</p>
+<figure class="highlight mipsasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><code class="hljs mipsasm"><span class="hljs-meta">.section</span> <span class="hljs-meta">.text</span>.exc_vec3<br>NESTED(except_vec3, <span class="hljs-number">0</span>, <span class="hljs-built_in">sp</span>)<br>    <span class="hljs-meta">.set</span> noat <br>    <span class="hljs-meta">.set</span> <span class="hljs-keyword">noreorder</span><br><span class="hljs-keyword"></span><span class="hljs-number">1</span>:<br>    <span class="hljs-keyword">mfc0 </span><span class="hljs-built_in">k1</span>,CP0_CAUSE<br>    la <span class="hljs-built_in">k0</span>,exception_handlers<br>    <span class="hljs-keyword">andi </span><span class="hljs-built_in">k1</span>,<span class="hljs-number">0x7c</span><br>    <span class="hljs-keyword">addu </span><span class="hljs-built_in">k0</span>,<span class="hljs-built_in">k1</span><br>    <span class="hljs-keyword">lw </span><span class="hljs-built_in">k0</span>,(<span class="hljs-built_in">k0</span>)<br>    <span class="hljs-keyword">nop</span><br><span class="hljs-keyword"></span>    <span class="hljs-keyword">jr </span><span class="hljs-built_in">k0</span><br>    <span class="hljs-keyword">nop</span><br><span class="hljs-keyword"></span>END(except_vec3)<br><span class="hljs-meta">.set</span> <span class="hljs-built_in">at</span><br></code></pre></td></tr></table></figure>
+
+<h4 id="异常向量组"><a href="#异常向量组" class="headerlink" title="异常向量组"></a>异常向量组</h4><p>异常分发程序通过exception_handlers数组定位中断处理程序，而exception_handlers称作异常向量组。</p>
+<p><strong>0 号异常</strong>的处理函数为handle_int，表示中断，由时钟中断、控制台中断等中断造成<br><strong>1 号异常</strong>的处理函数为handle_mod，表示存储异常，进行存储操作时该页被标记为只读<br><strong>2 号异常</strong>的处理函数为handle_tlb，TLB 异常，TLB 中没有和程序地址匹配的有效入口<br><strong>3 号异常</strong>的处理函数为handle_tlb，TLB 异常，TLB 失效，且未处于异常模式（用于提高处理效率）<br><strong>8 号异常</strong>的处理函数为handle_sys，系统调用，陷入内核，执行了 syscall 指令</p>
+<h4 id="时钟中断"><a href="#时钟中断" class="headerlink" title="时钟中断"></a>时钟中断</h4><p>从 CPU 到操作系统中关于中断处理的普遍性流程如下</p>
+<ol>
+<li>将当前 PC 地址存入 CP0 中的 EPC 寄存器。</li>
+<li>将 IEc,KUc 拷贝至 KUp 和IEp 中，同时将 IEc 置为 0，表示关闭全局中断使能，将 KUc 置 1，表示处于内核态。</li>
+<li>在 Cause 寄存器中，保存 ExcCode 段。由于此处是中断异常，对应的异常码即为 0。</li>
+<li>PC 转入异常分发程序入口。</li>
+<li>通过异常分发，判断出当前异常为中断异常，随后进入相应的中断处理程序。在MOS 中即对应 handle_int 函数。</li>
+<li>在中断处理程序中进一步判断 CP0_CAUSE 寄存器中是由几号中断位引发的中断，然后进入不同中断对应的中断服务函数。</li>
+<li>中断处理完成，将 EPC 的值取出到 PC 中，恢复 SR 中相应的中断使能，继续执行。</li>
+</ol>
+<p>时钟中断和操作系统的时间片轮转算法密切相关。时间片轮转算法是将每个进程分配一个时间段，即为该进程允许运行时间，如果在时间片结束时进程还未运行完毕，则挂起并执行另一进程。而CPU通过定时器产生的时钟中断知晓进程结束。</p>
+<p>当时钟中断产生，当前进程挂起，就需要寻找一合适进程运行。</p>
+<h4 id="进程调度"><a href="#进程调度" class="headerlink" title="进程调度"></a>进程调度</h4><p>前文提到，当时钟中断产生，就需要寻找一合适进程运行。这就涉及到进程调度，而调度算法就是时间片轮转的算法。</p>
 
               
             </div>
